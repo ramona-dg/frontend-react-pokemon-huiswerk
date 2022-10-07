@@ -1,39 +1,64 @@
-import './App.css';
-import './Components/PokemonCard';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import PokemonCard from "./Components/PokemonCard";
-import {useEffect, useState} from "react";
-import axios from "axios";
+import Button from './Components/Button';
+// import logo from './assets/logo.png';
+import './App.css';
 
 function App() {
-    // useState om data te ontvangen en in "op te slaan"
-    const [pokemon, setPokemon] = useState([])
+    const [pokemons, setPokemons] = useState([]);
+    const [endpoint, setEndpoint] = useState('https://pokeapi.co/api/v2/pokemon/');
+    const [loading, toggleLoading] = useState(false);
+    const [error, setError] = useState(false);
 
-    //Hier vraag je de data aan van de API met axios en error afvangen
     useEffect(() => {
-        async function getPokemonData() {
+        async function fetchData() {
+            toggleLoading(true);
+            setError(false);
+
             try {
-                const result = await axios.get(`https://pokeapi.co/api/v2/pokemon`)
-                console.log(result.data.results)
-                setPokemon(result.data.results)
-
-            } catch (e) {
+                const { data } = await axios.get(endpoint);
+                setPokemons(data);
+            } catch(e) {
                 console.error(e);
+                setError(true);
             }
+
+            toggleLoading(false);
         }
-    getPokemonData()}, [])
 
-        return (
-            <>
-                <div>
-                    {/* hier map je door pokemon heen en geef je url, naam en key door aan het component PokemonCard */}
-                    {pokemon && pokemon.map((poke => {
-                            return <PokemonCard url={poke.url} name={poke.name} key={poke.name}/>
-                        }
-                    ))}
-                </div>
+        fetchData();
+    }, [endpoint]);
 
-            </>
-        );
-    }
+    return (
+        <div className="poke-deck">
+            {pokemons &&
+                <>
+                {/*    <img alt="logo" width="400px" src={logo} />*/}
+                    <section className="button-bar">
+                        <Button
+                            disabled={!pokemons.previous}
+                            clickHandler={() => setEndpoint(pokemons.previous)}
+                        >
+                            Vorige
+                        </Button>
+                        <Button
+                            disabled={!pokemons.next}
+                            clickHandler={() => setEndpoint(pokemons.next)}
+                        >
+                            Volgende
+                        </Button>
+                    </section>
 
-    export default App;
+                    {pokemons.results && pokemons.results.map((pokemon) => {
+                        return <PokemonCard key={pokemon.name} endpoint={pokemon.url} />
+                    })}
+                </>
+            }
+            {loading && <p>Loading...</p>}
+            {error && <p>Er ging iets mis bij het ophalen van de data...</p>}
+        </div>
+    );
+}
+
+export default App;
